@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<style>
+
+ body {  
+    margin:0px;  
+    padding:0px;  
+    text-align:center;
+    background: #FFF;  
+  }  
+
+</style>
+
+<head>
+<h1>Parker Spiral Geometry Simulator</h1>
+</head>
+
+<body> 
+	<canvas id='c' width='400' height='400'></canvas>
+
+
+
+	<form id='info'>
+        <label for='vsw_val'>Solar Wind Speed (cm/s):</label>
+	<select id='vsw_val'>
+		<option value=2.0e+7>2.0e+7 </option>
+		<option value=3.0e+7>3.0e+7 </option>
+		<option value=4.0e+7>4.0e+7 </option>
+		<option selected value=5.0e+7>5.0e+7 </option>
+		<option value=6.0e+7>6.0e+7 </option>
+		<option value=7.0e+7>7.0e+7 </option>
+	</select>
+	
+	<label for='omega_val'>Rotation Time (s):</label>
+	<select id='omega_val'>
+		<option value=20>20 </option>
+		<option selected value=30>30 </option>
+		<option value=40>40 </option>
+		<option value=50>50 </option>
+		<option value=60>60 </option>
+	</select> 
+	<br />
+	<label for='fluc'>Fluctuate? </label>
+	<input type="checkbox" id="fluc" value="Fluctuate" />
+	<br />
+
+	<label for='amp_val'>Amplitude:</label>
+	<select id='amp_val'>
+		<option value=2.0>High </option>
+		<option selected value=1.0>Medium </option>
+		<option value=0.6>Low </option>
+	</select> 
+
+	<label for='scale_val'>Spatial Scale:</label>
+	<select id='scale_val'>
+		<option value=2.0>Large </option>
+		<option selected value=1.0>Medium </option>
+		<option value=0.3>Small </option>
+	</select> 
+
+	</form>
+
+	<button name='start' onclick='start_click()'>Start</button>
+
+    	<button name='stop' onclick='stop_click()'>Stop</button>
+
+
+   <script type="text/javascript" charset="utf-8">
+
+    
+//-----Set-up Canvas--------------------------------
+
+    c = document.getElementById('c');
+    var ctx = c.getContext('2d');
+    
+   
+	var clear = function(){
+    	ctx.fillStyle = '#000';
+    	ctx.beginPath();
+    	ctx.rect(0, 0, c.width, c.height);
+    	ctx.closePath();
+    	ctx.fill();
+    }
+    
+    clear();
+
+
+    var DrawSun = function() {
+
+	 ctx.fillStyle = '#FFA500';
+    	ctx.beginPath();
+    	ctx.arc(c.width/2, c.height/2, 20, 0, Math.PI*2, true);  
+    	ctx.closePath();
+    	ctx.fill();
+	  	}
+ DrawSun();
+//-----------------------------------------------------
+
+
+ 
+ var timer;
+ var y = 0;
+ var tracers = [];
+ var tracer_vel = [];
+ var phi = 0.0;
+ var go=false;
+  
+ //tracers.push([20.0*Math.sin(phi) + 200.0, 20.0*Math.cos(phi) + 200.0]);
+ //tracer_vel.push([vsw*Math.sin(phi)  , vsw*Math.cos(phi) ]);
+ var n_tracers;
+
+//---Physics Stuff-------
+var vrand;
+var vstar = 1.0e+7 // cm/s
+//var vsw = 5.0e+7/vstar;
+var fluctuate;
+var amp;
+var scale;
+var vsw;
+var dt = 500;  //milliseconds
+var seconds_per_turn; 
+var dphi; 
+    var DrawTracer = function( x, y){
+
+
+	ctx.fillStyle = '#0000FF';
+    	ctx.beginPath();
+    	ctx.arc(x, y, 5, 0, Math.PI*2, true);  
+    	ctx.closePath();
+    	ctx.fill();
+
+}
+
+ 
+ 
+ var mainloop= function(){
+
+ clear();
+ DrawSun();
+
+for (var i=0; i < n_tracers; i++){
+ DrawTracer(tracers[i][0], tracers[i][1]); 
+ tracers[i][0] += tracer_vel[i][0];
+ tracers[i][1] += tracer_vel[i][1]; 
+}
+
+ phi = phi + dphi;
+ tracers.push([20.0*Math.sin(phi) + 200.0, 20.0*Math.cos(phi) + 200.0]);
+ 
+	if(!fluctuate){
+	 tracer_vel.push([vsw*Math.sin(phi)  , vsw*Math.cos(phi) ]);
+	}else{
+	
+	vrand = (0.4*amp)*(0.1*Math.sin((2.0/scale)*phi + 0.33333)+0.5*Math.sin((4.0/scale)*phi + 2.896)+0.4*Math.sin((5.0/scale)*phi + 1.659)+0.3*Math.sin((6.0/scale)*phi + 0.2165));
+	tracer_vel.push([vsw*Math.sin(phi) - vrand*Math.sin(phi) , vsw*Math.cos(phi) + vrand*Math.cos(phi) ]);
+	} 
+
+n_tracers +=1;
+/*
+ if(n_tracers > 50){
+ tracers.splice(0,1);
+ tracer_vel.splice(0,1);
+ n_tracers -=1;
+ }
+*/
+if(go){
+timer = setTimeout(mainloop, dt); 
+}
+
+}
+
+var start_click = function(){
+
+
+	if(!go){
+	//get vsw---	
+	var ind = document.forms.info.vsw_val.selectedIndex;
+	vsw = document.forms.info.vsw_val.options[ind].value / vstar;
+	
+	//get rotation rate---
+	ind = document.forms.info.omega_val.selectedIndex;
+	seconds_per_turn = document.forms.info.omega_val.options[ind].value*(1000/dt);
+	dphi = (2.0*Math.PI / seconds_per_turn);
+	
+	//Check Whether field is fluctuating---
+	fluctuate = document.forms.info.fluc.checked;
+
+	//Get Fluctuation Amplitudes---
+	ind = document.forms.info.amp_val.selectedIndex;
+	amp = document.forms.info.amp_val.options[ind].value;
+
+	//Getting Spatial Scale of fluctuations---
+	ind = document.forms.info.scale_val.selectedIndex;
+	scale = document.forms.info.scale_val.options[ind].value;
+
+	
+
+	phi=0.0;
+	tracers.push([20.0*Math.sin(phi) + 200.0, 20.0*Math.cos(phi) + 200.0]);
+	if(!fluctuate){
+	 tracer_vel.push([vsw*Math.sin(phi)  , vsw*Math.cos(phi) ]);
+	}else{
+	
+	vrand = (0.4*amp)*(0.1*Math.sin((2.0/scale)*phi + 0.33333)+0.5*Math.sin((4.0/scale)*phi + 2.896)+0.4*Math.sin((5.0/scale)*phi + 1.659)+0.3*Math.sin((6.0/scale)*phi + 0.2165));
+	tracer_vel.push([vsw*Math.sin(phi) - vrand*Math.sin(phi) , vsw*Math.cos(phi) + vrand*Math.cos(phi) ]);
+	}
+	n_tracers = 1;
+
+
+	go = true;
+	mainloop();
+	}
+
+	}
+
+  var stop_click = function(){
+
+	//alert('Stop');
+	go = false;
+	clear();
+	DrawSun();
+	tracers.length=0;
+	tracer_vel.length=0;
+	
+	//clearInterval(mainloop);
+	}
+
+    </script>
+
+</body>
+</hmtl>
